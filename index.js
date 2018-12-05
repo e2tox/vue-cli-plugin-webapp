@@ -16,7 +16,7 @@ module.exports = (api, options) => {
   }
 
   api.chainWebpack(config => {
-    config.resolveLoader.modules.prepend(path.join(__dirname, 'node_modules'))
+    config.resolveLoader.modules.prepend(path.join(__dirname, '../../node_modules'))
 
     if (!options.pages) {
       config.entry('app')
@@ -26,7 +26,7 @@ module.exports = (api, options) => {
 
     config.resolve
       .extensions
-        .merge(['.ts', '.tsx'])
+      .merge(['.ts', '.tsx'])
 
     const tsRule = config.module.rule('ts').test(/\.ts$/)
     const tsxRule = config.module.rule('tsx').test(/\.tsx$/)
@@ -55,8 +55,13 @@ module.exports = (api, options) => {
     }
 
     if (api.hasPlugin('babel')) {
+      console.log('add babel loader')
       addLoader({
-        loader: 'babel-loader'
+        loader: 'babel-loader',
+        options: {
+          presets: ['minify'],
+          plugins: [require('babel-plugin-syntax-dynamic-import')]
+        }
       })
     }
     addLoader({
@@ -64,6 +69,7 @@ module.exports = (api, options) => {
       options: {
         transpileOnly: true,
         appendTsSuffixTo: ['\\.vue$'],
+        configFile: api.resolve(configFiles.tsconfig),
         // https://github.com/TypeStrong/ts-loader#happypackmode-boolean-defaultfalse
         happyPackMode: useThreads
       }
@@ -76,20 +82,20 @@ module.exports = (api, options) => {
       return options
     })
 
-    if (!process.env.VUE_CLI_TEST) {
-      // this plugin does not play well with jest + cypress setup (tsPluginE2e.spec.js) somehow
-      // so temporarily disabled for vue-cli tests
-      config
-        .plugin('fork-ts-checker')
-          .use(require('fork-ts-checker-webpack-plugin'), [{
-            vue: true,
-            tsconfig: configFiles.tsconfig,
-            tslint: options.lintOnSave !== false && configFiles.tslint,
-            formatter: 'codeframe',
-            // https://github.com/TypeStrong/ts-loader#happypackmode-boolean-defaultfalse
-            checkSyntacticErrors: useThreads
-          }])
-    }
+    // if (!process.env.VUE_CLI_TEST) {
+    //   // this plugin does not play well with jest + cypress setup (tsPluginE2e.spec.js) somehow
+    //   // so temporarily disabled for vue-cli tests
+    //   config
+    //     .plugin('fork-ts-checker')
+    //     .use(require('fork-ts-checker-webpack-plugin'), [{
+    //       vue: true,
+    //       tsconfig: configFiles.tsconfig,
+    //       tslint: options.lintOnSave !== false && configFiles.tslint,
+    //       formatter: 'codeframe',
+    //       // https://github.com/TypeStrong/ts-loader#happypackmode-boolean-defaultfalse
+    //       checkSyntacticErrors: useThreads
+    //     }])
+    // }
   })
 
   if (!api.hasPlugin('eslint')) {
