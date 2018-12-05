@@ -4,13 +4,24 @@ module.exports = (api, options) => {
   const fs = require('fs')
   const useThreads = process.env.NODE_ENV === 'production' && options.parallel
 
+  const resolve = (files) => {
+    return files.find((file) => {
+      return fs.existsSync(api.resolve(file));
+    })
+  };
+
+  const configFiles = {
+    tslint: resolve(['src/webapp/tslint.json','src/tslint.json']),
+    tsconfig: resolve(['src/webapp/tsconfig.json','src/tsconfig.json'])
+  }
+
   api.chainWebpack(config => {
     config.resolveLoader.modules.prepend(path.join(__dirname, 'node_modules'))
 
     if (!options.pages) {
       config.entry('app')
         .clear()
-        .add('./src/main.ts')
+        .add('./src/webapp/main.ts')
     }
 
     config.resolve
@@ -19,6 +30,8 @@ module.exports = (api, options) => {
 
     const tsRule = config.module.rule('ts').test(/\.ts$/)
     const tsxRule = config.module.rule('tsx').test(/\.tsx$/)
+
+
 
     // add a loader to both *.ts & vue<lang="ts">
     const addLoader = ({ loader, options }) => {
@@ -32,7 +45,7 @@ module.exports = (api, options) => {
         'ts-loader': require('ts-loader/package.json').version,
         'typescript': require('typescript/package.json').version,
         modern: !!process.env.VUE_CLI_MODERN_BUILD
-      }, 'src/webapp/tsconfig.json')
+      }, configFiles.tslint)
     })
 
     if (useThreads) {
@@ -70,7 +83,8 @@ module.exports = (api, options) => {
         .plugin('fork-ts-checker')
           .use(require('fork-ts-checker-webpack-plugin'), [{
             vue: true,
-            tslint: options.lintOnSave !== false && fs.existsSync(api.resolve('src/webapp/tslint.json')),
+            tsconfig: configFiles.tsconfig,
+            tslint: options.lintOnSave !== false && configFiles.tslint,
             formatter: 'codeframe',
             // https://github.com/TypeStrong/ts-loader#happypackmode-boolean-defaultfalse
             checkSyntacticErrors: useThreads
@@ -93,3 +107,4 @@ module.exports = (api, options) => {
     })
   }
 }
+
